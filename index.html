@@ -1358,7 +1358,8 @@ function desenhar() {
   ligarHover(p1, document.getElementById('t1'), linhas(p1, filtrados), filtrados,
     r => `<div class="r"><span>Vendas</span><b>${num(r.vendas,0)}</b></div>
           <div class="r"><span>Valor</span><b>${brl(r.valor)}</b></div>
-          <div class="r"><span>Investimento</span><b>${brl(r.invest)}</b></div>`);
+          <div class="r"><span>Investimento</span><b>${brl(r.invest)}</b></div>
+          <div class="r"><span>ROAS</span><b style="color:${r.roas >= META_ROAS ? 'var(--brand-forte)' : 'var(--ink)'}">${r.roas > 0 ? num(r.roas,2)+'x' : '—'}</b></div>`);
   ligarHover(p2, document.getElementById('t2'), barras(p2, filtrados), filtrados,
     r => `<div class="r"><span>ROAS</span><b>${r.roas > 0 ? num(r.roas,2)+'x' : '—'}</b></div>
           <div class="r"><span>Vendas</span><b>${num(r.vendas,0)}</b></div>
