@@ -1170,7 +1170,10 @@ function cartaoMeta(gastoPeriodo) {
 }
 
 function renderSaldos(s) {
-  document.getElementById('saldos').innerHTML = cartaoGoogle(s.g_custo) + cartaoMeta(s.m_custo);
+  const partes = [];
+  if (canal !== 'meta')   partes.push(cartaoGoogle(s.g_custo));
+  if (canal !== 'google') partes.push(cartaoMeta(s.m_custo));
+  document.getElementById('saldos').innerHTML = partes.join('');
 }
 
 /* ---------- graficos ---------- */
