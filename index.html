@@ -114,11 +114,6 @@
   .tip .r b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 
   /* tabela */
-  .cabtab { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 26px 0 12px; }
-  .cabtab h2 { font-size: 15px; font-weight: 620; margin: 0; }
-  .cabtab .meses { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
-  .cabtab .btn { padding: 6px 12px; font-size: 12.5px; }
-
   .tabwrap { overflow-x: auto; border-radius: 14px; border: 1px solid var(--border); background: var(--surface-1); }
   /* <table> reseta color no stylesheet padrão do navegador (herda preto em vez
      de var(--ink)) — precisa reafirmar aqui, senão o texto fica ilegível */
@@ -208,10 +203,7 @@
     <div class="plot" id="p2"><div class="tip" id="t2"></div></div>
   </div>
 
-  <div class="cabtab">
-    <h2>Detalhamento diário</h2>
-    <div class="meses" id="meses"></div>
-  </div>
+  <h2 style="font-size:15px;font-weight:620;margin:26px 0 12px">Detalhamento diário</h2>
   <div class="tabwrap">
     <table>
       <thead id="cabecalho"></thead>
@@ -1061,7 +1053,6 @@ const brl0 = n => n.toLocaleString('pt-BR', {style:'currency', currency:'BRL', m
 const num  = (n,c=1) => n.toLocaleString('pt-BR', {minimumFractionDigits:c, maximumFractionDigits:c});
 const dia  = s => { const [,m,d] = s.split('-'); return `${d}/${m}`; };
 const diaLongo = s => { const [a,m,d] = s.split('-'); return `${d}/${m}/${a}`; };
-const MES_NOME = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 
 const META_ROAS = 3.5;
 let canal = 'geral';
@@ -1282,45 +1273,9 @@ function ligarHover(el, tip, geo, dados, linhasTip) {
   el.onmouseleave = () => { tip.style.opacity = 0; if (cross) cross.setAttribute('opacity','0'); };
 }
 
-/* ---------- tabela: acompanha o mesmo periodo dos indicadores/graficos ----------
-   Os botoes de mes continuam existindo como atalho ("ver agosto inteiro"), mas
-   por baixo eles so ajustam o intervalo de datas — a mesma engrenagem que os
-   botoes 7/14/30/90 e o intervalo livre usam. Isso e o que faz a tabela
-   acompanhar o periodo, como pedido. */
-function mesesDisponiveis() {
-  const vistos = [];
-  for (const d of DADOS.dias) {
-    const ym = d.data.slice(0,7);
-    if (!vistos.includes(ym)) vistos.push(ym);
-  }
-  return vistos;
-}
-
-function limiteDoMes(ym) {
-  const [ano, mes] = ym.split('-').map(Number);
-  const ultimoDia = new Date(ano, mes, 0).getDate();
-  const ultimoDisponivel = DADOS.dias[DADOS.dias.length-1].data;
-  const ate = ym === ultimoDisponivel.slice(0,7) ? ultimoDisponivel : `${ym}-${String(ultimoDia).padStart(2,'0')}`;
-  return [`${ym}-01`, ate];
-}
-
+/* ---------- tabela: acompanha o mesmo periodo dos indicadores/graficos ---------- */
 function limparSelecao() {
-  document.querySelectorAll('.btn.per, .btn.mes').forEach(x => x.setAttribute('aria-pressed','false'));
-}
-
-function renderMeses() {
-  document.getElementById('meses').innerHTML = mesesDisponiveis().map(ym => {
-    const [a,m] = ym.split('-');
-    return `<button class="btn mes" data-m="${ym}">${MES_NOME[+m-1]}/${a.slice(2)}</button>`;
-  }).join('');
-  document.querySelectorAll('.btn.mes').forEach(b => {
-    b.onclick = () => {
-      limparSelecao();
-      b.setAttribute('aria-pressed','true');
-      const [de, ate] = limiteDoMes(b.dataset.m);
-      aplicar(de, ate);
-    };
-  });
+  document.querySelectorAll('.btn.per').forEach(x => x.setAttribute('aria-pressed','false'));
 }
 
 function renderTabela(dados) {
@@ -1428,7 +1383,6 @@ const primeiro = DADOS.dias[0].data, ultimo = DADOS.dias[DADOS.dias.length-1].da
 ['de','ate'].forEach(id => { const e = document.getElementById(id); e.min = primeiro; e.max = ultimo; });
 document.getElementById('atualizado').textContent = DADOS.atualizado_em || diaLongo(DADOS.gerado_em);
 
-renderMeses();
 porDias(30);
 let t; addEventListener('resize', () => { clearTimeout(t); t = setTimeout(desenhar, 150); });
 </script>
