@@ -120,7 +120,9 @@
   .cabtab .btn { padding: 6px 12px; font-size: 12.5px; }
 
   .tabwrap { overflow-x: auto; border-radius: 14px; border: 1px solid var(--border); background: var(--surface-1); }
-  table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 620px; }
+  /* <table> reseta color no stylesheet padrão do navegador (herda preto em vez
+     de var(--ink)) — precisa reafirmar aqui, senão o texto fica ilegível */
+  table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 620px; color: var(--ink); }
   th, td { padding: 9px 14px; text-align: right; white-space: nowrap; }
   th:first-child, td:first-child { text-align: left; }
   thead th {
