@@ -74,7 +74,6 @@
   .tile .rot { font-size: 11px; font-weight: 640; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
   .tile .big { font-size: 27px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.15; }
   .tile .sml { font-size: 12.5px; color: var(--ink-2); margin-top: 6px; }
-  .tile .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
 
   /* saldo */
   .saldos { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 26px; }
@@ -187,6 +186,8 @@
   </div>
   <div class="saldos" id="saldos"></div>
 
+  <div class="card" id="aportes"></div>
+
   <div class="card">
     <h2>Vendas e investimento por dia</h2>
     <p class="cap">Os dois em reais, na mesma escala. Quando a linha verde encosta na azul, o dia empatou.</p>
@@ -226,24 +227,41 @@
 
 <script>
 const DADOS = {
- "gerado_em": "2026-08-26",
- "atualizado_em": "26/08/2026 às 13h41",
- "meta_cache_de": "2026-08-26",
+ "gerado_em": "2026-08-27",
+ "atualizado_em": "27/08/2026 às 08h52",
+ "meta_cache_de": "2026-08-27",
  "saldo_google": {
   "limite": 720771.86,
-  "gasto": 719282.48,
-  "saldo": 1489.38
+  "gasto": 719349.19,
+  "saldo": 1422.67
  },
- "dias": [
+ "aportes": [
   {
-   "data": "2026-05-29",
-   "g_custo": 203.8,
-   "g_valor": 1046.47,
-   "g_vendas": 6.0,
-   "m_custo": 368.8,
-   "m_valor": 1082.31,
-   "m_vendas": 8
+   "canal": "meta",
+   "data": "2026-08-24",
+   "aporte_liquido_mes": 3000.0,
+   "imposto_aporte_mes": 364.5,
+   "total_aportado_mes": 3364.5,
+   "saldo_atual": 0.0,
+   "novo_boleto_liquido": 1500.0,
+   "novo_boleto_imposto": 182.25,
+   "novo_boleto_total": 1682.25,
+   "novo_boleto_status": "aguardando pagamento"
   },
+  {
+   "canal": "google",
+   "data": "2026-08-24",
+   "aporte_liquido_mes": 4700.0,
+   "imposto_aporte_mes": 0,
+   "total_aportado_mes": 4700.0,
+   "saldo_atual": 666.25,
+   "novo_boleto_liquido": 1150.0,
+   "novo_boleto_imposto": 0,
+   "novo_boleto_total": 1150.0,
+   "novo_boleto_status": "aguardando pagamento"
+  }
+ ],
+ "dias": [
   {
    "data": "2026-05-30",
    "g_custo": 310.11,
@@ -490,8 +508,8 @@ const DADOS = {
   {
    "data": "2026-06-26",
    "g_custo": 868.08,
-   "g_valor": 147.34,
-   "g_vendas": 1.0,
+   "g_valor": 221.24,
+   "g_vendas": 2.0,
    "m_custo": 617.99,
    "m_valor": 502.2,
    "m_vendas": 4
@@ -1030,17 +1048,26 @@ const DADOS = {
   {
    "data": "2026-08-25",
    "g_custo": 151.44,
-   "g_valor": 527.22,
-   "g_vendas": 5.0,
-   "m_custo": 165.77,
+   "g_valor": 640.34,
+   "g_vendas": 6.0,
+   "m_custo": 165.95,
    "m_valor": 831.52,
    "m_vendas": 8
   },
   {
    "data": "2026-08-26",
-   "g_custo": 87.23,
-   "g_valor": 464.64,
-   "g_vendas": 2.3,
+   "g_custo": 128.29,
+   "g_valor": 689.67,
+   "g_vendas": 3.8,
+   "m_custo": 147.49,
+   "m_valor": 2003.23,
+   "m_vendas": 10
+  },
+  {
+   "data": "2026-08-27",
+   "g_custo": 16.79,
+   "g_valor": 194.9,
+   "g_vendas": 1.0,
    "m_custo": 0.0,
    "m_valor": 0.0,
    "m_vendas": 0
@@ -1083,13 +1110,13 @@ function somar(lista) {
 /* ---------- tiles ---------- */
 function renderTiles(s) {
   const split = canal === 'geral'
-    ? `<span class="dot" style="background:var(--invest)"></span>Meta ${brl0(s.m_custo)} &nbsp;·&nbsp; Google ${brl0(s.g_custo)}`
+    ? `Meta ${brl0(s.m_custo)} &nbsp;·&nbsp; Google ${brl0(s.g_custo)}`
     : `somente ${canal === 'google' ? 'Google Ads' : 'Meta Ads'}`;
   document.getElementById('tiles').innerHTML = `
     <div class="tile">
       <div class="rot">Vendas</div>
-      <div class="big">${num(s.vendas,0)}</div>
-      <div class="sml">${brl(s.valor)} no período</div>
+      <div class="big">${brl(s.valor)}</div>
+      <div class="sml">${num(s.vendas,0)} vendas no período</div>
     </div>
     <div class="tile">
       <div class="rot">Investimento</div>
@@ -1107,7 +1134,7 @@ function renderTiles(s) {
       <div class="sml">custo por venda ${brl0(s.cpa)}</div>
     </div>
     <div class="tile">
-      <div class="rot">Média diária</div>
+      <div class="rot">Média de vendas diária</div>
       <div class="big">${brl0(s.valor / (s.n||1))}</div>
       <div class="sml">investindo ${brl0(s.invest / (s.n||1))}/dia</div>
     </div>`;
@@ -1124,6 +1151,73 @@ function ritmoDiario(campo) {
   const fechados = DADOS.dias.slice(0, -1).slice(-7);
   if (!fechados.length) return 0;
   return fechados.reduce((s,d) => s + d[campo], 0) / fechados.length;
+}
+
+/* ---------- aportes (ledger manual) ----------
+   Meta nao expoe saldo/credito da conta pela API (so gasto). O usuario informa
+   o saldo que conhece a cada aporte novo (normalmente semanal); daqui pra
+   frente projetamos o saldo de hoje descontando o gasto real que a API ja
+   confirma, canal por canal, sem misturar a verba de um com a do outro. */
+function ultimaAtualizacao(canal) {
+  const lista = (DADOS.aportes || []).filter(a => a.canal === canal);
+  if (!lista.length) return null;
+  return lista.reduce((a,b) => a.data > b.data ? a : b);
+}
+
+function gastoDesde(canal, data) {
+  const campo = canal === 'meta' ? 'm_custo' : 'g_custo';
+  return DADOS.dias.filter(d => d.data > data).reduce((s,d) => s + d[campo], 0);
+}
+
+function saldoEstimado(canal) {
+  const u = ultimaAtualizacao(canal);
+  if (!u) return null;
+  const gasto = gastoDesde(canal, u.data);
+  return {valor: u.saldo_atual - gasto, desde: u.data, base: u.saldo_atual, gasto};
+}
+
+function receitaDoMes(canal) {
+  const ultimo = DADOS.dias[DADOS.dias.length-1].data, mes = ultimo.slice(0,7);
+  const campo = canal === 'meta' ? 'm_valor' : 'g_valor';
+  return DADOS.dias.filter(d => d.data.startsWith(mes)).reduce((s,d) => s + d[campo], 0);
+}
+
+function renderAportes() {
+  const el = document.getElementById('aportes');
+  const canais = [['meta','Meta Ads'], ['google','Google Ads']];
+  const linhas = canais.map(([c,nome]) => ({c, nome, u: ultimaAtualizacao(c)}));
+  if (linhas.every(l => !l.u)) {
+    el.innerHTML = `<h2>Aportes e saldo por canal</h2>
+      <p class="cap">Nenhum aporte registrado ainda. Assim que houver um aporte ou boleto aprovado, é só informar e esta seção passa a acompanhar o saldo entre um aporte e outro.</p>`;
+    return;
+  }
+  const semDado = c => `<span class="zero">—</span>`;
+  const cel = (l, fn) => l.u ? fn(l) : semDado();
+  const linha = (rot, fn) => `<tr><td>${rot}</td>${linhas.map(l => `<td>${cel(l, fn)}</td>`).join('')}</tr>`;
+  const maisRecente = linhas.filter(l=>l.u).map(l=>l.u.data).sort().slice(-1)[0];
+
+  el.innerHTML = `
+    <h2>Aportes e saldo por canal</h2>
+    <p class="cap">Controle manual dos aportes em cada conta de anúncio. Última atualização informada: <b>${diaLongo(maisRecente)}</b>. O saldo de hoje é estimado a partir daí, descontando o gasto real já confirmado pela API.</p>
+    <div class="tabwrap">
+      <table>
+        <thead><tr><th>Indicador</th>${linhas.map(l=>`<th>${l.nome}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${linha('Data da atualização', l => diaLongo(l.u.data))}
+          ${linha('Aporte líquido do mês', l => brl(l.u.aporte_liquido_mes))}
+          ${linha('Imposto sobre aportes do mês', l => l.u.imposto_aporte_mes > 0 ? brl(l.u.imposto_aporte_mes) : semDado())}
+          ${linha('Total pago/aportado no mês', l => brl(l.u.total_aportado_mes))}
+          ${linha('Saldo na data informada', l => brl(l.u.saldo_atual))}
+          ${linha('Saldo estimado hoje', l => { const e = saldoEstimado(l.c); return `<b>${brl(e.valor)}</b>`; })}
+          ${linha('Novo boleto aprovado (líquido)', l => l.u.novo_boleto_total > 0 ? brl(l.u.novo_boleto_liquido) : semDado())}
+          ${linha('Imposto do novo boleto', l => l.u.novo_boleto_imposto > 0 ? brl(l.u.novo_boleto_imposto) : semDado())}
+          ${linha('Total do novo boleto', l => l.u.novo_boleto_total > 0 ? brl(l.u.novo_boleto_total) : semDado())}
+          ${linha('Status do novo boleto', l => l.u.novo_boleto_total > 0 ? l.u.novo_boleto_status : semDado())}
+          ${linha('Receita atribuída pela plataforma (mês)', l => brl(receitaDoMes(l.c)))}
+        </tbody>
+      </table>
+    </div>
+    <p class="cap" style="margin:10px 0 0">O saldo estimado projeta o valor informado na data da atualização menos o gasto real do período seguinte. Ele não substitui a conferência no gerenciador de cada plataforma, principalmente depois de muitos dias sem uma atualização nova.</p>`;
 }
 
 function cartaoGoogle(gastoPeriodo) {
@@ -1160,12 +1254,34 @@ function cartaoGoogle(gastoPeriodo) {
 function cartaoMeta(gastoPeriodo) {
   const ritmo = ritmoDiario('m_custo');
   const n = filtrados.length || 1;
-  return `<div class="saldo ok">
-    <div class="top"><span class="plat">Meta Ads</span><span class="est">gasto no período</span></div>
-    <div class="big">${brl(gastoPeriodo)}</div>
-    <div class="dur" style="color:var(--ink-2)">${brl(gastoPeriodo / n)}/dia na média do período</div>
-    <div class="gasto">Ritmo dos últimos 7 dias: <b>${brl(ritmo)}/dia</b></div>
-    <div class="obs">O saldo da conta do Meta é acompanhado direto no Gerenciador de Anúncios, em Cobranças.</div>
+  const est = saldoEstimado('meta');
+
+  if (!est) {
+    return `<div class="saldo ok">
+      <div class="top"><span class="plat">Meta Ads</span><span class="est">gasto no período</span></div>
+      <div class="big">${brl(gastoPeriodo)}</div>
+      <div class="dur" style="color:var(--ink-2)">${brl(gastoPeriodo / n)}/dia na média do período</div>
+      <div class="gasto">Ritmo dos últimos 7 dias: <b>${brl(ritmo)}/dia</b></div>
+      <div class="obs">Sem aporte registrado ainda para estimar o saldo. Assim que houver um, informe em "Aportes e saldo por canal" para a projeção começar a aparecer aqui.</div>
+    </div>`;
+  }
+
+  const dias = ritmo > 0 ? est.valor / ritmo : null;
+  let classe = 'ok', texto;
+  if (est.valor < 0)            { classe = 'grave'; texto = '🔴 saldo já estourado, aporte urgente'; }
+  else if (dias === null)       texto = 'sem gasto recente para projetar';
+  else if (dias < 1)            { classe = 'grave'; texto = '🔴 acaba hoje'; }
+  else if (dias < DIAS_ALERTA)  { classe = 'grave'; texto = `🔴 dá para ~${Math.floor(dias)} dia${Math.floor(dias)===1?'':'s'}, abaixo dos 3 dias de aviso`; }
+  else if (dias < DIAS_ATENCAO) { classe = 'alerta'; texto = `🟡 dá para ~${Math.floor(dias)} dias`; }
+  else                          texto = `✓ dá para ~${Math.floor(dias)} dias`;
+
+  const cor = classe === 'grave' ? '#e66767' : classe === 'alerta' ? '#fab219' : 'var(--brand-forte)';
+  return `<div class="saldo ${classe}">
+    <div class="top"><span class="plat">Meta Ads</span><span class="est">saldo estimado</span></div>
+    <div class="big" style="color:${cor}">${brl(est.valor)}</div>
+    <div class="dur" style="color:${cor}">${texto}</div>
+    <div class="gasto">Gasto no período selecionado: <b>${brl(gastoPeriodo)}</b></div>
+    <div class="obs">Meta não expõe saldo por API. Estimado a partir de ${brl(est.base)} informado em ${diaLongo(est.desde)}, menos ${brl(est.gasto)} de gasto real já confirmado desde então. Ritmo atual ${brl(ritmo)}/dia.</div>
   </div>`;
 }
 
@@ -1386,6 +1502,7 @@ const primeiro = DADOS.dias[0].data, ultimo = DADOS.dias[DADOS.dias.length-1].da
 ['de','ate'].forEach(id => { const e = document.getElementById(id); e.min = primeiro; e.max = ultimo; });
 document.getElementById('atualizado').textContent = DADOS.atualizado_em || diaLongo(DADOS.gerado_em);
 
+renderAportes();
 porDias(30);
 let t; addEventListener('resize', () => { clearTimeout(t); t = setTimeout(desenhar, 150); });
 </script>
