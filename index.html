@@ -1110,7 +1110,7 @@ function somar(lista) {
 /* ---------- tiles ---------- */
 function renderTiles(s) {
   const split = canal === 'geral'
-    ? `Meta ${brl0(s.m_custo)} &nbsp;·&nbsp; Google ${brl0(s.g_custo)}`
+    ? `Meta ${brl0(s.m_custo)}<br>Google ${brl0(s.g_custo)}`
     : `somente ${canal === 'google' ? 'Google Ads' : 'Meta Ads'}`;
   document.getElementById('tiles').innerHTML = `
     <div class="tile">
