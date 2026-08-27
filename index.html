@@ -127,7 +127,6 @@
   tbody td { font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--grid); }
   tbody tr:last-child td { border-bottom: none; }
   tbody tr:hover td { background: var(--chip); }
-  tbody tr.vazia td { color: var(--muted); }
   tfoot td { font-weight: 640; border-top: 1px solid var(--axis); font-variant-numeric: tabular-nums; }
   tfoot tr:first-child td { padding-top: 12px; }
   .zero { color: var(--muted); }
@@ -220,6 +219,7 @@
       <li>A conversão conta o <b>pedido criado</b>, não o pedido pago. Parte dos pedidos é cancelada ou não é paga.</li>
       <li>O dia de hoje ainda está em andamento e costuma aparecer incompleto.</li>
       <li>Meta e Google fecham os números com algumas horas de atraso; um dia recente pode subir um pouco depois.</li>
+      <li style="color:#fab219"><b>O investimento do Meta não é em tempo real — só fecha completo cerca de 1 dia depois.</b> Se o dia de hoje (ou às vezes o de ontem) aparecer com "R$ 0,00" no Meta, não é falha do dashboard, é o próprio Meta que ainda não processou.</li>
     </ul>
   </div>
 
@@ -1417,30 +1417,24 @@ function renderTabela(dados) {
     : `<tr><th>Dia</th><th>Vendas</th><th>Valor</th><th>Investimento</th><th>ROAS</th></tr>`;
 
   const linhas = [];
-  const comDado = [];
   for (const r of dados) {
     const rot = dia(r.data);
-    if (r.invest === 0 && r.vendas === 0) {
-      linhas.push(`<tr class="vazia"><td>${rot}</td><td colspan="${geral?6:4}">sem veiculação</td></tr>`);
-      continue;
-    }
-    comDado.push(r);
     const cols = geral
-      ? `<td>${r.m_custo > 0 ? brl(r.m_custo) : '<span class="zero">—</span>'}</td>
-         <td>${r.g_custo > 0 ? brl(r.g_custo) : '<span class="zero">—</span>'}</td>
+      ? `<td>${brl(r.m_custo)}</td>
+         <td>${brl(r.g_custo)}</td>
          <td>${brl(r.invest)}</td>`
       : `<td>${brl(r.invest)}</td>`;
     linhas.push(`<tr>
       <td>${rot}</td>
-      <td>${r.vendas > 0 ? num(r.vendas,0) : '<span class="zero">—</span>'}</td>
-      <td>${r.valor > 0 ? brl(r.valor) : '<span class="zero">—</span>'}</td>
+      <td>${num(r.vendas,0)}</td>
+      <td>${brl(r.valor)}</td>
       ${cols}
-      <td class="${r.roas >= META_ROAS ? 'ok' : ''}">${r.roas > 0 ? num(r.roas,2)+'x' : '<span class="zero">—</span>'}</td>
+      <td class="${r.roas >= META_ROAS ? 'ok' : ''}">${num(r.roas,2)}x</td>
     </tr>`);
   }
   document.getElementById('corpo').innerHTML = linhas.join('');
 
-  const s = somar(comDado), n = s.n || 1;
+  const s = somar(dados), n = s.n || 1;
   const totCols = geral
     ? `<td>${brl(s.m_custo)}</td><td>${brl(s.g_custo)}</td><td>${brl(s.invest)}</td>`
     : `<td>${brl(s.invest)}</td>`;
