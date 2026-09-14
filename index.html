@@ -96,6 +96,22 @@
   .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 18px 18px 12px; margin-bottom: 16px; }
   .card h2 { font-size: 14px; font-weight: 620; margin: 0 0 2px; }
   .card .cap { font-size: 12px; color: var(--muted); margin: 0 0 14px; }
+
+  /* faixa do cronograma de aportes */
+  .ciclo {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-left: 3px solid var(--muted); border-radius: 10px;
+    padding: 10px 14px; margin: 0 0 14px; font-size: 13px;
+  }
+  .ciclo.hoje { border-left-color: var(--brand); }
+  .ciclo-freq {
+    font-size: 10.5px; font-weight: 640; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .06em;
+  }
+  .ciclo-status { color: var(--ink-2); }
+  .ciclo-status b { color: var(--brand-forte); font-weight: 640; }
+  .sml-cel { display: block; font-size: 11px; color: var(--muted); font-weight: 400; margin-top: 2px; }
   .legend { display: flex; gap: 16px; font-size: 12.5px; color: var(--ink-2); margin-bottom: 10px; }
   .legend span { display: flex; align-items: center; gap: 6px; }
   .legend i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
@@ -228,7 +244,7 @@
 <script>
 const DADOS = {
  "gerado_em": "2026-09-14",
- "atualizado_em": "14/09/2026 às 09h22",
+ "atualizado_em": "14/09/2026 às 09h30",
  "meta_cache_de": "2026-09-14",
  "saldo_google": {
   "limite": 721952.24,
@@ -313,6 +329,20 @@ const DADOS = {
    "novo_boleto_status": ""
   }
  ],
+ "cronograma_aportes": {
+  "_nota": "Calendario fixo do ciclo de aportes, pedido pelo usuario em 14/09 pra simplificar o card do dashboard (a tabela de 'atualizacoes' estava confusa com muita coluna). Sao 4 parcelas por mes, aproximadamente 1 por semana -- nao exatamente a cada 7 dias, as datas exatas vem do que foi aprovado. Atualizar 'periodo' e 'datas' a cada novo mes assim que o cronograma for aprovado; se o valor por parcela mudar, atualizar os 3 campos de valor tambem.",
+  "periodo": "setembro/2026",
+  "parcelas_por_mes": 4,
+  "datas": [
+   "2026-09-09",
+   "2026-09-14",
+   "2026-09-21",
+   "2026-09-28"
+  ],
+  "valor_liquido_google": 1175.0,
+  "valor_liquido_meta": 750.0,
+  "valor_imposto_meta": 91.13
+ },
  "dias": [
   {
    "data": "2026-06-17",
@@ -1117,7 +1147,7 @@ const DADOS = {
   },
   {
    "data": "2026-09-14",
-   "g_custo": 55.97,
+   "g_custo": 57.71,
    "g_valor": 0.0,
    "g_vendas": 0.0,
    "m_custo": 0.0,
@@ -1234,42 +1264,82 @@ function receitaDoMes(canal) {
   return DADOS.dias.filter(d => d.data.startsWith(mes)).reduce((s,d) => s + d[campo], 0);
 }
 
+/* status do cronograma fixo de aportes (4 por mes, ~1 por semana): descobre
+   se hoje e um dia de aporte, ou qual foi a ultima e qual e a proxima data
+   prevista, comparando contra a data real de hoje (nao a do dado coletado,
+   isso e sobre calendario, nao sobre atraso de atribuicao). */
+function statusCronograma(cr) {
+  if (!cr || !Array.isArray(cr.datas) || !cr.datas.length) return null;
+  const datas = [...cr.datas].sort();
+  const total = cr.parcelas_por_mes || datas.length;
+  const h = new Date();
+  const hoje = `${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,'0')}-${String(h.getDate()).padStart(2,'0')}`;
+  const idxHoje = datas.indexOf(hoje);
+  if (idxHoje !== -1) return {hoje: true, numero: idxHoje + 1, total};
+  const proxima = datas.find(d => d > hoje);
+  const ultima = [...datas].reverse().find(d => d <= hoje);
+  return {
+    hoje: false, total,
+    proxima: proxima ? {data: proxima, numero: datas.indexOf(proxima) + 1} : null,
+    ultima: ultima ? {data: ultima, numero: datas.indexOf(ultima) + 1} : null,
+  };
+}
+
+function faixaCronograma(cr) {
+  const st = statusCronograma(cr);
+  if (!st) return '';
+  const periodo = cr.periodo ? ` de ${cr.periodo}` : '';
+  let texto;
+  if (st.hoje) {
+    texto = `📅 <b>Hoje é dia de aporte</b> — parcela ${st.numero} de ${st.total}${periodo}`;
+  } else {
+    const partes = [];
+    if (st.ultima)  partes.push(`última parcela prevista: ${diaLongo(st.ultima.data)} (nº ${st.ultima.numero} de ${st.total})`);
+    if (st.proxima) partes.push(`próxima: <b>${diaLongo(st.proxima.data)}</b> (nº ${st.proxima.numero} de ${st.total})`);
+    texto = partes.join(' · ') || 'sem parcelas futuras registradas para este mês';
+  }
+  return `<div class="ciclo ${st.hoje ? 'hoje' : ''}">
+    <span class="ciclo-freq">${st.total} aportes por mês · 1 por semana</span>
+    <span class="ciclo-status">${texto}</span>
+  </div>`;
+}
+
 function renderAportes() {
   const el = document.getElementById('aportes');
   const canais = [['meta','Meta Ads'], ['google','Google Ads']];
   const linhas = canais.map(([c,nome]) => ({c, nome, u: ultimaAtualizacao(c)}));
-  if (linhas.every(l => !l.u)) {
+  const cr = DADOS.cronograma_aportes;
+  if (linhas.every(l => !l.u) && !cr) {
     el.innerHTML = `<h2>Aportes e saldo por canal</h2>
       <p class="cap">Nenhum aporte registrado ainda. Assim que houver um aporte ou boleto aprovado, é só informar e esta seção passa a acompanhar o saldo entre um aporte e outro.</p>`;
     return;
   }
-  const semDado = c => `<span class="zero">—</span>`;
+  const semDado = () => `<span class="zero">—</span>`;
   const cel = (l, fn) => l.u ? fn(l) : semDado();
   const linha = (rot, fn) => `<tr><td>${rot}</td>${linhas.map(l => `<td>${cel(l, fn)}</td>`).join('')}</tr>`;
-  const maisRecente = linhas.filter(l=>l.u).map(l=>l.u.data).sort().slice(-1)[0];
+  const valorParcela = c => cr ? (c === 'google' ? cr.valor_liquido_google : cr.valor_liquido_meta) : null;
 
   el.innerHTML = `
     <h2>Aportes e saldo por canal</h2>
-    <p class="cap">Controle manual dos aportes em cada conta de anúncio. Última atualização informada: <b>${diaLongo(maisRecente)}</b>. O saldo de hoje é estimado a partir daí, descontando o gasto real já confirmado pela API.</p>
+    <p class="cap">Controle manual do orçamento aportado em cada conta de anúncio.</p>
+    ${faixaCronograma(cr)}
     <div class="tabwrap">
       <table>
         <thead><tr><th>Indicador</th>${linhas.map(l=>`<th>${l.nome}</th>`).join('')}</tr></thead>
         <tbody>
-          ${linha('Data da atualização', l => diaLongo(l.u.data))}
-          ${linha('Aporte líquido do mês', l => brl(l.u.aporte_liquido_mes))}
-          ${linha('Imposto sobre aportes do mês', l => l.u.imposto_aporte_mes > 0 ? brl(l.u.imposto_aporte_mes) : semDado())}
-          ${linha('Total pago/aportado no mês', l => brl(l.u.total_aportado_mes))}
-          ${linha('Saldo na data informada', l => brl(l.u.saldo_atual))}
-          ${linha('Saldo estimado hoje', l => { const e = saldoEstimado(l.c); return `<b>${brl(e.valor)}</b>`; })}
-          ${linha('Novo boleto aprovado (líquido)', l => l.u.novo_boleto_total > 0 ? brl(l.u.novo_boleto_liquido) : semDado())}
-          ${linha('Imposto do novo boleto', l => l.u.novo_boleto_imposto > 0 ? brl(l.u.novo_boleto_imposto) : semDado())}
-          ${linha('Total do novo boleto', l => l.u.novo_boleto_total > 0 ? brl(l.u.novo_boleto_total) : semDado())}
-          ${linha('Status do novo boleto', l => l.u.novo_boleto_total > 0 ? l.u.novo_boleto_status : semDado())}
+          ${linha('Última conferência de saldo', l => `${brl(l.u.saldo_atual)}<span class="sml-cel">em ${diaLongo(l.u.data)}</span>`)}
+          ${linha('Valor por aporte (líquido)', l => {
+             const v = valorParcela(l.c);
+             if (v == null) return semDado();
+             const nota = l.c === 'meta' && cr.valor_imposto_meta
+               ? `<span class="sml-cel">+ ${brl(cr.valor_imposto_meta)} de imposto</span>` : '';
+             return `${brl(v)}${nota}`;
+          })}
           ${linha('Receita atribuída pela plataforma (mês)', l => brl(receitaDoMes(l.c)))}
         </tbody>
       </table>
     </div>
-    <p class="cap" style="margin:10px 0 0">O saldo estimado projeta o valor informado na data da atualização menos o gasto real do período seguinte. Ele não substitui a conferência no gerenciador de cada plataforma, principalmente depois de muitos dias sem uma atualização nova.</p>`;
+    <p class="cap" style="margin:10px 0 0">O saldo de hoje (estimativa e dias de folga) fica nos cartões acima. Esta tabela só registra o cronograma de aportes, o valor de cada parcela e a última conferência manual de saldo.</p>`;
 }
 
 function cartaoGoogle(gastoPeriodo) {
