@@ -111,7 +111,12 @@
   }
   .ciclo-status { color: var(--ink-2); }
   .ciclo-status b { color: var(--brand-forte); font-weight: 640; }
-  .sml-cel { display: block; font-size: 11px; color: var(--muted); font-weight: 400; margin-top: 2px; }
+  tr.hoje td { background: rgba(23,165,102,.08); font-weight: 620; }
+  .tag-hoje {
+    font-size: 10px; font-weight: 640; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--brand-forte); background: rgba(23,165,102,.14);
+    border-radius: 999px; padding: 2px 7px; margin-left: 6px;
+  }
   .legend { display: flex; gap: 16px; font-size: 12.5px; color: var(--ink-2); margin-bottom: 10px; }
   .legend span { display: flex; align-items: center; gap: 6px; }
   .legend i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
@@ -201,8 +206,6 @@
   </div>
   <div class="saldos" id="saldos"></div>
 
-  <div class="card" id="aportes"></div>
-
   <div class="card">
     <h2>Vendas e investimento por dia</h2>
     <p class="cap">Os dois em reais, na mesma escala. Quando a linha verde encosta na azul, o dia empatou.</p>
@@ -228,6 +231,8 @@
     </table>
   </div>
 
+  <div class="card" id="aportes"></div>
+
   <div class="nota">
     <b>Como ler estes números.</b>
     <ul>
@@ -244,12 +249,12 @@
 <script>
 const DADOS = {
  "gerado_em": "2026-09-14",
- "atualizado_em": "14/09/2026 às 09h30",
+ "atualizado_em": "14/09/2026 às 09h42",
  "meta_cache_de": "2026-09-14",
  "saldo_google": {
   "limite": 721952.24,
-  "gasto": 721679.39,
-  "saldo": 272.85
+  "gasto": 721692.3,
+  "saldo": 259.94
  },
  "aportes": [
   {
@@ -1147,7 +1152,7 @@ const DADOS = {
   },
   {
    "data": "2026-09-14",
-   "g_custo": 57.71,
+   "g_custo": 58.86,
    "g_valor": 0.0,
    "g_vendas": 0.0,
    "m_custo": 0.0,
@@ -1258,22 +1263,20 @@ function saldoEstimado(canal) {
   return {valor: u.saldo_atual - gasto, desde: u.data, base: u.saldo_atual, gasto};
 }
 
-function receitaDoMes(canal) {
-  const ultimo = DADOS.dias[DADOS.dias.length-1].data, mes = ultimo.slice(0,7);
-  const campo = canal === 'meta' ? 'm_valor' : 'g_valor';
-  return DADOS.dias.filter(d => d.data.startsWith(mes)).reduce((s,d) => s + d[campo], 0);
-}
-
 /* status do cronograma fixo de aportes (4 por mes, ~1 por semana): descobre
    se hoje e um dia de aporte, ou qual foi a ultima e qual e a proxima data
    prevista, comparando contra a data real de hoje (nao a do dado coletado,
    isso e sobre calendario, nao sobre atraso de atribuicao). */
+function hojeISO() {
+  const h = new Date();
+  return `${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,'0')}-${String(h.getDate()).padStart(2,'0')}`;
+}
+
 function statusCronograma(cr) {
   if (!cr || !Array.isArray(cr.datas) || !cr.datas.length) return null;
   const datas = [...cr.datas].sort();
   const total = cr.parcelas_por_mes || datas.length;
-  const h = new Date();
-  const hoje = `${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,'0')}-${String(h.getDate()).padStart(2,'0')}`;
+  const hoje = hojeISO();
   const idxHoje = datas.indexOf(hoje);
   if (idxHoje !== -1) return {hoje: true, numero: idxHoje + 1, total};
   const proxima = datas.find(d => d > hoje);
@@ -1291,7 +1294,7 @@ function faixaCronograma(cr) {
   const periodo = cr.periodo ? ` de ${cr.periodo}` : '';
   let texto;
   if (st.hoje) {
-    texto = `📅 <b>Hoje é dia de aporte</b> — parcela ${st.numero} de ${st.total}${periodo}`;
+    texto = `<b>Hoje é dia de aporte</b>, parcela ${st.numero} de ${st.total}${periodo}`;
   } else {
     const partes = [];
     if (st.ultima)  partes.push(`última parcela prevista: ${diaLongo(st.ultima.data)} (nº ${st.ultima.numero} de ${st.total})`);
@@ -1306,40 +1309,34 @@ function faixaCronograma(cr) {
 
 function renderAportes() {
   const el = document.getElementById('aportes');
-  const canais = [['meta','Meta Ads'], ['google','Google Ads']];
-  const linhas = canais.map(([c,nome]) => ({c, nome, u: ultimaAtualizacao(c)}));
   const cr = DADOS.cronograma_aportes;
-  if (linhas.every(l => !l.u) && !cr) {
-    el.innerHTML = `<h2>Aportes e saldo por canal</h2>
-      <p class="cap">Nenhum aporte registrado ainda. Assim que houver um aporte ou boleto aprovado, é só informar e esta seção passa a acompanhar o saldo entre um aporte e outro.</p>`;
+  if (!cr || !Array.isArray(cr.datas) || !cr.datas.length) {
+    el.innerHTML = `<h2>Aportes do mês</h2>
+      <p class="cap">Nenhum cronograma de aportes registrado ainda. Assim que houver um cronograma aprovado, é só informar e esta seção passa a mostrar o histórico do mês.</p>`;
     return;
   }
-  const semDado = () => `<span class="zero">—</span>`;
-  const cel = (l, fn) => l.u ? fn(l) : semDado();
-  const linha = (rot, fn) => `<tr><td>${rot}</td>${linhas.map(l => `<td>${cel(l, fn)}</td>`).join('')}</tr>`;
-  const valorParcela = c => cr ? (c === 'google' ? cr.valor_liquido_google : cr.valor_liquido_meta) : null;
+  const liquido = (cr.valor_liquido_google || 0) + (cr.valor_liquido_meta || 0);
+  const bruto = liquido + (cr.valor_imposto_meta || 0);
+  const hoje = hojeISO();
+  const datas = [...cr.datas].sort();
+
+  const linhas = datas.map(d => `<tr class="${d === hoje ? 'hoje' : ''}">
+    <td>${diaLongo(d)}${d === hoje ? ' <span class="tag-hoje">hoje</span>' : ''}</td>
+    <td>${brl(liquido)}</td>
+    <td>${brl(bruto)}</td>
+  </tr>`).join('');
 
   el.innerHTML = `
-    <h2>Aportes e saldo por canal</h2>
-    <p class="cap">Controle manual do orçamento aportado em cada conta de anúncio.</p>
+    <h2>Aportes do mês</h2>
+    <p class="cap">Controle manual do orçamento aportado nas contas de anúncio.</p>
     ${faixaCronograma(cr)}
     <div class="tabwrap">
       <table>
-        <thead><tr><th>Indicador</th>${linhas.map(l=>`<th>${l.nome}</th>`).join('')}</tr></thead>
-        <tbody>
-          ${linha('Última conferência de saldo', l => `${brl(l.u.saldo_atual)}<span class="sml-cel">em ${diaLongo(l.u.data)}</span>`)}
-          ${linha('Valor por aporte (líquido)', l => {
-             const v = valorParcela(l.c);
-             if (v == null) return semDado();
-             const nota = l.c === 'meta' && cr.valor_imposto_meta
-               ? `<span class="sml-cel">+ ${brl(cr.valor_imposto_meta)} de imposto</span>` : '';
-             return `${brl(v)}${nota}`;
-          })}
-          ${linha('Receita atribuída pela plataforma (mês)', l => brl(receitaDoMes(l.c)))}
-        </tbody>
+        <thead><tr><th>Data</th><th>Valor líquido</th><th>Valor bruto</th></tr></thead>
+        <tbody>${linhas}</tbody>
       </table>
     </div>
-    <p class="cap" style="margin:10px 0 0">O saldo de hoje (estimativa e dias de folga) fica nos cartões acima. Esta tabela só registra o cronograma de aportes, o valor de cada parcela e a última conferência manual de saldo.</p>`;
+    <p class="cap" style="margin:10px 0 0">Datas e valores previstos pelo cronograma aprovado (Google + Meta somados; o bruto inclui o imposto retido do Meta). Não confirma se cada parcela já foi processada em cada conta. O saldo de hoje fica nos cartões de Google e Meta acima.</p>`;
 }
 
 function cartaoGoogle(gastoPeriodo) {
