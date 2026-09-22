@@ -1255,9 +1255,13 @@ function renderTiles(s) {
 }
 
 /* ---------- saldo ----------
-   O protocolo com a i5Growth exige avisar boleto com 3 dias de antecedencia,
-   entao o corte de alerta e 3 dias, nao um valor em reais. */
-const DIAS_ALERTA = 3, DIAS_ATENCAO = 7;
+   O aviso "dá para ~X dias" foi removido (22/09): a projecao usava so a
+   media de gasto dos ultimos 7 dias, que pode divergir bastante do orcamento
+   diario configurado nas campanhas ativas agora (ex.: Meta rodou 19% acima
+   do orcamento nominal numa leitura real) -- o numero de dias ficava
+   assertivo demais pra uma conta que so olha media historica. Os cartoes
+   seguem mostrando saldo, gasto do periodo e ritmo/dia como referencia, sem
+   converter isso num "dura X dias". */
 
 function ritmoDiario(campo) {
   // media dos ultimos 7 dias fechados: o dia de hoje esta em andamento e
@@ -1384,19 +1388,9 @@ function cartaoGoogle(gastoPeriodo) {
     </div>`;
   }
 
-  const dias = ritmo > 0 ? g.saldo / ritmo : null;
-  let classe = 'ok', texto;
-  if (dias === null)            texto = 'sem gasto recente para projetar';
-  else if (dias < 1)            { classe = 'grave'; texto = '🔴 acaba hoje'; }
-  else if (dias < DIAS_ALERTA)  { classe = 'grave'; texto = `🔴 dá para ~${Math.floor(dias)} dia${Math.floor(dias)===1?'':'s'}`; }
-  else if (dias < DIAS_ATENCAO) { classe = 'alerta'; texto = `🟡 dá para ~${Math.floor(dias)} dias`; }
-  else                          texto = `✓ dá para ~${Math.floor(dias)} dias`;
-
-  const cor = classe === 'grave' ? '#e66767' : classe === 'alerta' ? '#fab219' : 'var(--brand-forte)';
-  return `<div class="saldo ${classe}">
+  return `<div class="saldo ok">
     <div class="top"><span class="plat">Google Ads</span><span class="est">saldo disponível</span></div>
-    <div class="big" style="color:${cor}">${brl(g.saldo)}</div>
-    <div class="dur" style="color:${cor}">${texto}</div>
+    <div class="big" style="color:var(--brand-forte)">${brl(g.saldo)}</div>
     ${gasto}
     <div class="obs">Ritmo atual ${brl(ritmo)}/dia. Saldo calculado do orçamento da conta: ${brl(g.limite)} liberados menos ${brl(g.gasto)} já servidos.</div>
   </div>`;
@@ -1417,20 +1411,16 @@ function cartaoMeta(gastoPeriodo) {
     </div>`;
   }
 
-  const dias = ritmo > 0 ? est.valor / ritmo : null;
-  let classe = 'ok', texto;
-  if (est.valor < 0)            { classe = 'grave'; texto = '🔴 saldo já estourado, aporte urgente'; }
-  else if (dias === null)       texto = 'sem gasto recente para projetar';
-  else if (dias < 1)            { classe = 'grave'; texto = '🔴 acaba hoje'; }
-  else if (dias < DIAS_ALERTA)  { classe = 'grave'; texto = `🔴 dá para ~${Math.floor(dias)} dia${Math.floor(dias)===1?'':'s'}`; }
-  else if (dias < DIAS_ATENCAO) { classe = 'alerta'; texto = `🟡 dá para ~${Math.floor(dias)} dias`; }
-  else                          texto = `✓ dá para ~${Math.floor(dias)} dias`;
+  const classe = est.valor < 0 ? 'grave' : 'ok';
+  const cor = classe === 'grave' ? '#e66767' : 'var(--brand-forte)';
+  const alerta = est.valor < 0
+    ? `<div class="dur" style="color:${cor}">🔴 saldo já estourado, aporte urgente</div>`
+    : '';
 
-  const cor = classe === 'grave' ? '#e66767' : classe === 'alerta' ? '#fab219' : 'var(--brand-forte)';
   return `<div class="saldo ${classe}">
     <div class="top"><span class="plat">Meta Ads</span><span class="est">saldo estimado</span></div>
     <div class="big" style="color:${cor}">${brl(est.valor)}</div>
-    <div class="dur" style="color:${cor}">${texto}</div>
+    ${alerta}
     <div class="gasto">Gasto no período selecionado: <b>${brl(gastoPeriodo)}</b></div>
     <div class="obs">Meta não expõe saldo por API. Estimado a partir de ${brl(est.base)} informado em ${diaLongo(est.desde)}, menos ${brl(est.gasto)} de gasto real já confirmado desde então. Ritmo atual ${brl(ritmo)}/dia.</div>
   </div>`;
